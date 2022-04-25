@@ -20,6 +20,7 @@ contract PigeonEnvelope is ERC721, Ownable {
         bytes32 categoryId;
         address operator;
         string baseURI;
+        string categoryName;
     }
 
     event NewCategory(
@@ -68,10 +69,10 @@ contract PigeonEnvelope is ERC721, Ownable {
         params.Desc = "Using to mark an envelope whether was been opened";
         params.Agent = IPodCore.TagAgent(
             IPodCore.AgentType.Address,
-            bytes20(address(msg.sender))
+            bytes20(address(this))
         );
-
         _TagClassId = _TagClass.newValueTagClass(params);
+        _TagClass.transferTagClassOwner(_TagClassId, msg.sender);
     }
 
     function getTagClassId() public view returns (bytes18) {
@@ -99,10 +100,6 @@ contract PigeonEnvelope is ERC721, Ownable {
         emit TagClassAddressUpdated(oldTagClassAddress, newTagClassAddress);
     }
 
-    function transferTagClassOwner(address newTagClassOwner) public onlyOwner {
-        _TagClass.transferTagClassOwner(_TagClassId, newTagClassOwner);
-    }
-
     function newCategory(
         address operator,
         string calldata categoryName,
@@ -121,6 +118,7 @@ contract PigeonEnvelope is ERC721, Ownable {
         category.categoryId = categoryId;
         category.baseURI = baseURI;
         category.operator = operator;
+        category.categoryName = categoryName;
         _Categories[categoryId] = category;
         emit NewCategory(operator, categoryId, categoryName, baseURI);
         return categoryId;

@@ -1,20 +1,23 @@
 import {
   airdropEnvelopeNft,
   envelopIface,
+  getCategory,
   hasOpened,
   newCategory,
   open,
   provider,
+  transferCategoryOperator,
+  wallet,
   walletOperator,
-  walletUser
+  walletUser,
 } from "./envelope";
 
 const nconf = require("nconf");
 
-async function airdrops(categoryId:string):Promise<void>{
+async function airdrops(categoryId: string): Promise<void> {
   const whiteList = (await nconf
-      .file("./whiteList.json")
-      .get("whiteList")) as string[];
+    .file("./whiteList.json")
+    .get("whiteList")) as string[];
 
   const batch = 200;
   for (let i = 0; i < whiteList.length / batch; i++) {
@@ -24,7 +27,7 @@ async function airdrops(categoryId:string):Promise<void>{
       to = whiteList.length;
     }
     console.log(
-        `Start batchNo:${i} [from:${from} to:${to}) Total:${whiteList.length}`
+      `Start batchNo:${i} [from:${from} to:${to}) Total:${whiteList.length}`
     );
     const addresses = whiteList.slice(from, to);
     await airdropEnvelopeNft(categoryId, addresses);
@@ -35,17 +38,30 @@ async function airdrops(categoryId:string):Promise<void>{
 }
 
 async function main(): Promise<void> {
-  const categoryId = await newCategory(await walletOperator.getAddress(), "xxx2", "xxx");
-  const airdropTxHash = await airdropEnvelopeNft(categoryId, [await walletUser.getAddress()]);
-  const rcp = await provider.getTransactionReceipt(
-      airdropTxHash
-  )
-  const evt  = await envelopIface.parseLog(rcp.logs[1])
+  const categoryId = await newCategory(
+    await walletOperator.getAddress(),
+    "xxx",
+    "xxx"
+  );
+  const airdropTxHash = await airdropEnvelopeNft(categoryId, [
+    await walletUser.getAddress(),
+  ]);
+  const rcp = await provider.getTransactionReceipt(airdropTxHash);
+  const evt = await envelopIface.parseLog(rcp.logs[1]);
   console.log("AirdropEvt:", JSON.stringify(evt.args, undefined, 2));
   const tokenId = evt.args.tokenId;
-  console.log("HasOpened:",  await hasOpened(tokenId));
+  console.log("HasOpened:", await hasOpened(tokenId));
   await open(tokenId);
   console.log("HasOpened:", await hasOpened(tokenId));
+  console.log(
+    "Category:",
+    JSON.stringify(await getCategory(categoryId), undefined, 2)
+  );
+  await transferCategoryOperator(categoryId, await wallet.getAddress());
+  console.log(
+    "Category:",
+    JSON.stringify(await getCategory(categoryId), undefined, 2)
+  );
 }
 
 void main();
